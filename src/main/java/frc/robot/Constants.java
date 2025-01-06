@@ -16,6 +16,8 @@ import com.ctre.phoenix.motorcontrol.InvertType;
  */
 public final class Constants {
 
+    public static final double stickDeadband = 0.1;
+
     public static final class DriveTrain {
         public static final int kLeftMasterId = 4;
         public static final int kLeftFollowerId = 3;
@@ -32,12 +34,6 @@ public final class Constants {
         public static final double kD = 0.15;
         public static final double kI = 0.0;
         public static final double kIntegratorRange = 0.3;
-    }
 
-    public static final class Leds {
-        public static final int kVccChannel = 0;
-        public static final int kRedChannel = 2;
-        public static final int kGreenChannel = 3;
-        public static final int kBlueChannel = 1;
     }
 }
