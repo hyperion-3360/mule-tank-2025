@@ -37,7 +37,7 @@ public class apriltaglock extends Command {
   // private LEDs m_led;
   private int m_alliance_index;
   private AprilTagFieldLayout m_aprilTagFieldLayout;
-  private PIDController controller = new PIDController(.1, 0, 0);
+  private PIDController controller = new PIDController(.05, 0, 0);
   /**
    * Command to keep the aiming at the speaker while keeping the robot in motion
    *
@@ -81,7 +81,9 @@ public class apriltaglock extends Command {
   }
 
   @Override
-  public void initialize() {}
+  public void initialize() {
+    controller.reset();
+  }
 
   @Override
   public boolean isFinished() {
@@ -134,6 +136,7 @@ public class apriltaglock extends Command {
       SmartDashboard.putString("Target height", Double.toString(targetHeight));
 
       var targetPitch = target.getPitch();
+      var targetYaw = target.getYaw();
       var bestPose = target.getBestCameraToTarget();
       var targetX = bestPose.getX();
       var targetY = bestPose.getY();
@@ -141,18 +144,20 @@ public class apriltaglock extends Command {
       var distanceToTarget = Math.sqrt(targetX * targetX + targetY * targetY + targetZ * targetZ);
 
       SmartDashboard.putString("Target pitch", Double.toString(targetPitch));
-      SmartDashboard.putString("Target yaw", Double.toString(rotationVal));
+      SmartDashboard.putNumber("Target yaw", targetYaw);
       SmartDashboard.putString("Target X", Double.toString(targetX));
       SmartDashboard.putString("Target Y", Double.toString(targetY));
       SmartDashboard.putString("Target Z", Double.toString(targetZ));
+      SmartDashboard.putNumber("rotationVal", rotationVal);
 
       SmartDashboard.putString("Target distance", Double.toString(distanceToTarget));
 
-      rotationVal = controller.calculate(target.getYaw(), 0);
+      rotationVal = -controller.calculate(targetYaw, 0);
+      SmartDashboard.putNumber("rotationVal", rotationVal);
     }
 
     // Command drivetrain motors based on target speeds
 
-    m_driveTrain.driveArcade(forwardVal, rotationVal, false);
+    m_driveTrain.driveArcade(forwardVal, rotationVal, true);
   }
 }

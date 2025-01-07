@@ -4,11 +4,18 @@
 
 package frc.robot;
 
+import java.util.function.DoubleSupplier;
+
+import org.photonvision.PhotonCamera;
+
+import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
+import frc.robot.commands.apriltaglock;
 import frc.robot.subsystems.DriveTrain;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -21,12 +28,25 @@ public class RobotContainer {
   private final DriveTrain m_driveTrain = new DriveTrain();
   // private final Leds m_leds = new Leds();
 
-  private final XboxController m_controller = new XboxController(0);
+  private final CommandXboxController m_controller = new CommandXboxController(0);
+
+  private final DoubleSupplier translation = () -> m_controller.getLeftY();
+  private final DoubleSupplier rotation = () -> -m_controller.getRightX();
+  private final PhotonCamera camera = new PhotonCamera("aprilVision");
+
+  private final apriltaglock APRILTAGLOCK = new apriltaglock(m_driveTrain, translation, rotation, camera);
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     // Configure the button bindings
     configureButtonBindings();
+     // Drive train default is arcade drive
+     m_driveTrain.setDefaultCommand(new RunCommand(() -> {
+      // Controller y axis is positive right, but z rotation is NWU (positive left)
+      double x = m_controller.getLeftY();
+      double z = -m_controller.getRightX();
+      m_driveTrain.driveArcade(x, z, true);
+    }, m_driveTrain));
   }
 
   /**
@@ -37,13 +57,7 @@ public class RobotContainer {
    */
   private void configureButtonBindings() {
 
-    // Drive train default is arcade drive
-    m_driveTrain.setDefaultCommand(new RunCommand(() -> {
-      // Controller y axis is positive right, but z rotation is NWU (positive left)
-      double x = m_controller.getLeftY();
-      double z = -m_controller.getRightX();
-      m_driveTrain.driveArcade(x, z, true);
-    }, m_driveTrain));
+    m_controller.a().whileTrue(APRILTAGLOCK);
 
   }
 
