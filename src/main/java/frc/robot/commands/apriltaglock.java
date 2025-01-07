@@ -3,7 +3,7 @@ package frc.robot.commands;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -28,34 +28,30 @@ import org.photonvision.targeting.PhotonTrackedTarget;
  *              - then integrate the swerve to allow the driver to control translate and strafe
  */
 
-// import frc.robot.subsystems.Elevator;
-// import frc.robot.subsystems.LEDs;
-// import frc.robot.subsystems.swerve.Swerve;
-
 public class apriltaglock extends Command {
   private PhotonCamera m_camera;
   private DriveTrain m_driveTrain;
   // private Elevator m_elevator;
-  private DoubleSupplier m_translationSup;
-  private DoubleSupplier m_strafeSup;
+  private DoubleSupplier m_forwardSupplier;
+  private DoubleSupplier m_rotationSupplier;
   // private LEDs m_led;
   private int m_alliance_index;
   private AprilTagFieldLayout m_aprilTagFieldLayout;
-
+  private PIDController controller = new PIDController(.1, 0, 0);
   /**
    * Command to keep the aiming at the speaker while keeping the robot in motion
    *
    * @param s_swerve swerve submodule instance
    * @param s_led led submodule instance
-   * @param translationSup translation forward or backward
-   * @param strafeSup moving laterally
+   * @param forwardSupplier forward or backward
+   * @param rotationSupplier rotation
    * @param camera photon camera instance
    */
   public apriltaglock(
       // LEDs s_led,
       DriveTrain driveTrain,
-      DoubleSupplier translationSup,
-      DoubleSupplier strafeSup,
+      DoubleSupplier forwardSupplier,
+      DoubleSupplier rotationSupplier,
       PhotonCamera camera) {
     this.m_camera = camera;
 
@@ -79,8 +75,8 @@ public class apriltaglock extends Command {
       addRequirements(m_driveTrain);
       // addRequirements(s_led);
 
-      this.m_translationSup = translationSup;
-      this.m_strafeSup = strafeSup;
+      this.m_forwardSupplier = forwardSupplier;
+      this.m_rotationSupplier = rotationSupplier;
     }
   }
 
@@ -101,18 +97,14 @@ public class apriltaglock extends Command {
 
   @Override
   public void execute() {
-    double translationVal = 0;
-    double strafeVal = 0;
-
-    if (m_translationSup != null)
-      translationVal =
-          MathUtil.applyDeadband(m_translationSup.getAsDouble(), Constants.stickDeadband);
-
-    if (m_strafeSup != null)
-      strafeVal = MathUtil.applyDeadband(m_strafeSup.getAsDouble(), Constants.stickDeadband);
-
+    double forwardVal = 0;
     double rotationVal = 0;
-    // double rotationVal = m_swerve.getRotation2d().getRadians();
+
+    if (m_forwardSupplier != null)
+      forwardVal = MathUtil.applyDeadband(m_forwardSupplier.getAsDouble(), Constants.stickDeadband);
+
+    if (m_rotationSupplier != null)
+      rotationVal = MathUtil.applyDeadband(m_rotationSupplier.getAsDouble(), Constants.stickDeadband);
 
     PhotonTrackedTarget target = null;
 
@@ -120,12 +112,13 @@ public class apriltaglock extends Command {
     // Query the latest result from PhotonVision
     PhotonPipelineResult result = null;
 
-    if (m_camera != null) result = m_camera.getLatestResult();
+    if (m_camera != null)
+      result = m_camera.getLatestResult();
 
     if (result != null && result.hasTargets()) {
       for (var t : result.getTargets()) {
         if (t.getFiducialId() == 10) {
-          //        if (t.getFiducialId() ==
+          // if (t.getFiducialId() ==
           // Constants.VisionConstants.kSpeakerIndex[m_alliance_index]) {
           target = t;
           break;
@@ -135,8 +128,6 @@ public class apriltaglock extends Command {
 
     // still possible that the visible ids are not the ones we're interested in
     if (target != null) {
-      // TODO this will most likely require some sort of conversion to speed
-      rotationVal = target.getYaw();
       SmartDashboard.putString("Target id", Integer.toString(target.getFiducialId()));
 
       var targetHeight = m_aprilTagFieldLayout.getTagPose(target.getFiducialId()).get().getZ();
@@ -157,16 +148,11 @@ public class apriltaglock extends Command {
 
       SmartDashboard.putString("Target distance", Double.toString(distanceToTarget));
 
-      /*
-      if (distanceToTarget < Constants.VisionConstants.kSpeakerShootingDistance) {
-        ;
-        // m_elevator.extendTheElevator(Elevator.elevatorHeight.LOW);
-        // set LED to flash green
-      }
-      */
-
-      /* Rotate to face speaker */
-      
+      rotationVal = controller.calculate(target.getYaw(), 0);
     }
+
+    // Command drivetrain motors based on target speeds
+
+    m_driveTrain.driveArcade(forwardVal, rotationVal, false);
   }
 }

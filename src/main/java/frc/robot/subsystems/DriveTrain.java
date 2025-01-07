@@ -36,9 +36,6 @@ public class DriveTrain extends SubsystemBase {
 
     m_leftFollower.follow(m_leftMaster);
     m_rightFollower.follow(m_rightMaster);
-
-
-
   }
 
   @Override
@@ -48,12 +45,12 @@ public class DriveTrain extends SubsystemBase {
 
   /**
    * Open loop drive with arcade style inputs
-   * @param x [-1 .. 1] positive is forward
-   * @param z [-1 .. 1] positive is counter-clockwise
+   * @param forward [-1 .. 1] positive is forward
+   * @param rotation [-1 .. 1] positive is counter-clockwise
    */
-  public void driveArcade(double x, double z, boolean squareInputs) {
+  public void driveArcade(double forward, double rotation, boolean squareInputs) {
 
     // Flip turn axis because arcadeDrive is not NWU compliant
-    m_drive.arcadeDrive(x, -z, squareInputs);
+    m_drive.arcadeDrive(forward, -rotation, squareInputs);
   }
 }
