@@ -4,8 +4,10 @@ import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
@@ -37,7 +39,8 @@ public class apriltaglock extends Command {
   // private LEDs m_led;
   private int m_alliance_index;
   private AprilTagFieldLayout m_aprilTagFieldLayout;
-  private PIDController controller = new PIDController(.05, 0, 0);
+  private PIDController controller = new PIDController(.03, 0.015, 0);
+  private LinearFilter m_filter = LinearFilter.singlePoleIIR(0.1, 0.02);
   /**
    * Command to keep the aiming at the speaker while keeping the robot in motion
    *
@@ -137,6 +140,7 @@ public class apriltaglock extends Command {
 
       var targetPitch = target.getPitch();
       var targetYaw = target.getYaw();
+      var targetYawFiltered = m_filter.calculate(targetYaw);
       var bestPose = target.getBestCameraToTarget();
       var targetX = bestPose.getX();
       var targetY = bestPose.getY();
@@ -145,6 +149,8 @@ public class apriltaglock extends Command {
 
       SmartDashboard.putString("Target pitch", Double.toString(targetPitch));
       SmartDashboard.putNumber("Target yaw", targetYaw);
+      SmartDashboard.putNumber("Target Yaw Filtered", targetYawFiltered);
+
       SmartDashboard.putString("Target X", Double.toString(targetX));
       SmartDashboard.putString("Target Y", Double.toString(targetY));
       SmartDashboard.putString("Target Z", Double.toString(targetZ));
@@ -152,8 +158,11 @@ public class apriltaglock extends Command {
 
       SmartDashboard.putString("Target distance", Double.toString(distanceToTarget));
 
-      rotationVal = -controller.calculate(targetYaw, 0);
+      rotationVal = -controller.calculate(targetYawFiltered, 0);
       SmartDashboard.putNumber("rotationVal", rotationVal);
+    }
+    else{
+      controller.reset();
     }
 
     // Command drivetrain motors based on target speeds
