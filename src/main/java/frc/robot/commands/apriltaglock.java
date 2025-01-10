@@ -7,7 +7,6 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
@@ -37,10 +36,11 @@ public class apriltaglock extends Command {
   private DoubleSupplier m_forwardSupplier;
   private DoubleSupplier m_rotationSupplier;
   // private LEDs m_led;
-  private int m_alliance_index;
   private AprilTagFieldLayout m_aprilTagFieldLayout;
-  private PIDController controller = new PIDController(.03, 0.015, 0);
-  private LinearFilter m_filter = LinearFilter.singlePoleIIR(0.1, 0.02);
+  private PIDController controller = new PIDController(Constants.DriveTrain.kP, Constants.DriveTrain.kI, Constants.DriveTrain.kD);
+  private LinearFilter m_filter = LinearFilter.singlePoleIIR(Constants.vision.aprilFilterTimeConstant, Constants.vision.aprilFilterPeriod);
+  private int m_alliance_index = 0;
+  private int m_tagToLock;
   /**
    * Command to keep the aiming at the speaker while keeping the robot in motion
    *
@@ -55,8 +55,10 @@ public class apriltaglock extends Command {
       DriveTrain driveTrain,
       DoubleSupplier forwardSupplier,
       DoubleSupplier rotationSupplier,
-      PhotonCamera camera) {
+      PhotonCamera camera, 
+      int tagToLock) {
     this.m_camera = camera;
+    m_tagToLock = tagToLock;
 
     try {
       m_aprilTagFieldLayout =
@@ -68,19 +70,31 @@ public class apriltaglock extends Command {
     if (m_aprilTagFieldLayout != null) {
 
       this.m_driveTrain = driveTrain;
-      // this.m_led = s_led;
 
       // find out the current alliance with fail safe
-      m_alliance_index = 0;
       var alliance = DriverStation.getAlliance();
       if (alliance.isPresent()) m_alliance_index = alliance.get() == Alliance.Red ? 0 : 1;
 
       addRequirements(m_driveTrain);
-      // addRequirements(s_led);
 
       this.m_forwardSupplier = forwardSupplier;
       this.m_rotationSupplier = rotationSupplier;
     }
+  }
+
+  private double adjustRotation(double distanceToTarget)
+  {
+    final double thresholdDistance = 4.0;
+    final double mininumRotationFactor = 0.1;
+    final double maximumRotationFactor = 1.0;
+
+    double m = (maximumRotationFactor  - mininumRotationFactor ) / thresholdDistance ;
+    double b = mininumRotationFactor;
+
+    if (distanceToTarget > thresholdDistance )
+      return 1.0;
+
+    return m * distanceToTarget + b;
   }
 
   @Override
@@ -95,9 +109,6 @@ public class apriltaglock extends Command {
 
   @Override
   public void end(boolean interrupted) {
-    // m_swerve.drive(new Translation2d(0, 0), 0, false, true);
-    // m_elevator.extendTheElevator(Elevator.elevatorHeight.LOW);
-    // m_led.setState(LEDs.State.IDLE);
   }
 
   @Override
@@ -122,9 +133,7 @@ public class apriltaglock extends Command {
 
     if (result != null && result.hasTargets()) {
       for (var t : result.getTargets()) {
-        if (t.getFiducialId() == 10) {
-          // if (t.getFiducialId() ==
-          // Constants.VisionConstants.kSpeakerIndex[m_alliance_index]) {
+        if (t.getFiducialId() == m_tagToLock) {
           target = t;
           break;
         }
@@ -159,6 +168,11 @@ public class apriltaglock extends Command {
       SmartDashboard.putString("Target distance", Double.toString(distanceToTarget));
 
       rotationVal = -controller.calculate(targetYawFiltered, 0);
+      // adjust rotationVal according to the distance to the target
+      rotationVal *= adjustRotation(distanceToTarget);
+      rotationVal += Math.signum(rotationVal) * Constants.DriveTrain.kS;
+
+      SmartDashboard.putString("Adjust rotation", Double.toString(adjustRotation(distanceToTarget)));
       SmartDashboard.putNumber("rotationVal", rotationVal);
     }
     else{

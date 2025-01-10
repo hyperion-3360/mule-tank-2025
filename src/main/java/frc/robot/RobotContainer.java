@@ -34,7 +34,7 @@ public class RobotContainer {
   private final DoubleSupplier rotation = () -> -m_controller.getRightX();
   private final PhotonCamera camera = new PhotonCamera("aprilVision");
 
-  private final apriltaglock APRILTAGLOCK = new apriltaglock(m_driveTrain, translation, rotation, camera);
+  private final apriltaglock APRILTAGLOCK = new apriltaglock(m_driveTrain, translation, rotation, camera, 10);
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
