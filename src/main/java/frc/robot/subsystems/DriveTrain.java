@@ -4,14 +4,28 @@
 
 package frc.robot.subsystems;
 
+import edu.wpi.first.math.estimator.DifferentialDrivePoseEstimator;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import static frc.robot.Constants.DriveTrain.*;
 
+import org.littletonrobotics.junction.AutoLogOutput;
+
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 
 public class DriveTrain extends SubsystemBase {
+
+  private final DifferentialDrivePoseEstimator m_poseEstimator = new DifferentialDrivePoseEstimator(
+    new DifferentialDriveKinematics(kTrackWidth), 
+    new Rotation2d(), 
+    0.0, 
+    0.0, 
+    new Pose2d()
+    );
 
   private final WPI_TalonSRX m_leftMaster = new WPI_TalonSRX(kLeftMasterId);
   private final WPI_TalonSRX m_rightMaster = new WPI_TalonSRX(kRightMasterId);
@@ -49,8 +63,17 @@ public class DriveTrain extends SubsystemBase {
    * @param rotation [-1 .. 1] positive is counter-clockwise
    */
   public void driveArcade(double forward, double rotation, boolean squareInputs) {
-
+    
     // Flip turn axis because arcadeDrive is not NWU compliant
     m_drive.arcadeDrive(forward, -rotation, squareInputs);
+  }
+
+  @AutoLogOutput(key = "EstimatedPose")
+  public Pose2d getPose() {
+    return m_poseEstimator.getEstimatedPosition();
+  }
+
+  public Rotation2d getRotation() {
+    return getPose().getRotation();
   }
 }

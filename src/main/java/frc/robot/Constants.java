@@ -6,6 +6,8 @@ package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.InvertType;
 
+import edu.wpi.first.wpilibj.RobotBase;
+
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
  * constants. This class should not be used for any other purpose. All constants should be declared
@@ -34,11 +36,28 @@ public final class Constants {
         public static final double kD = 0.0;
         public static final double kI = 0.02;
         public static final double kS = 0.2;
+
+        // meters (also make sure to actually measure this before testing the code)
+        public static final double kTrackWidth = 0.15; 
     }
 
     public static final class vision {
         public static final double aprilFilterTimeConstant = 0.1;
         public static final double aprilFilterPeriod = 0.1;
     }
+
+    public static final Mode simMode = Mode.REAL;
+    public static final Mode currentMode = RobotBase.isReal() ? Mode.REAL : simMode;
+
+    public static enum Mode {
+        /** Running on a real robot. */
+        REAL,
+
+        /** Running a physics simulator. */
+        SIM,
+
+        /** Replaying from a log file. */
+        REPLAY
+  }
         
 }
