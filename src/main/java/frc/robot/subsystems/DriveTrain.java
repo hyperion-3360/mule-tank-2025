@@ -20,7 +20,7 @@ import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 public class DriveTrain extends SubsystemBase {
 
   private final DifferentialDrivePoseEstimator m_poseEstimator = new DifferentialDrivePoseEstimator(
-    new DifferentialDriveKinematics(kTrackWidth), 
+    new DifferentialDriveKinematics(kWheelDiameter), 
     new Rotation2d(), 
     0.0, 
     0.0, 

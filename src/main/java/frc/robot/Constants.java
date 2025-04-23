@@ -4,8 +4,11 @@
 
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Centimeters;
+
 import com.ctre.phoenix.motorcontrol.InvertType;
 
+import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.RobotBase;
 
 /**
@@ -38,7 +41,7 @@ public final class Constants {
         public static final double kS = 0.2;
 
         // meters (also make sure to actually measure this before testing the code)
-        public static final double kTrackWidth = 0.15; 
+        public static final Distance kWheelDiameter = Centimeters.of(15);
     }
 
     public static final class vision {
